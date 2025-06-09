@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import os
+import io
 from datetime import datetime
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
@@ -26,9 +26,8 @@ if uploaded_file:
         st.dataframe(df.head(20))
 
     if st.button("Generate Pivot Report"):
-        output_file = f"pivot_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-
-        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             # === Summary Sheet ===
             from openpyxl.utils.dataframe import dataframe_to_rows
             from openpyxl.styles import Font, PatternFill
@@ -75,31 +74,17 @@ if uploaded_file:
                             cell.font = bold_font
                             cell.fill = fill
 
-            # === Detailed Logs and Pivots ===
+            # === Detailed Logs ===
             for member in team_members:
                 member_df = df[df['Source.Name'] == member]
-
-                # Pivot 1: Client x Week
-                pivot1 = pd.pivot_table(member_df, index='Client', columns='Week', values='Hours', aggfunc='sum', fill_value=0)
-                pivot1.to_excel(writer, sheet_name=f"{member[:15]}_ClientWeek")
-
-                # Pivot 2: Activity x Client
-                pivot2 = pd.pivot_table(member_df, index='Activity Name', columns='Client', values='Hours', aggfunc='sum', fill_value=0)
-                pivot2.to_excel(writer, sheet_name=f"{member[:15]}_ActClient")
-
-                # Pivot 3: Activity x Week
-                pivot3 = pd.pivot_table(member_df, index='Activity Name', columns='Week', values='Hours', aggfunc='sum', fill_value=0)
-                pivot3.to_excel(writer, sheet_name=f"{member[:15]}_ActWeek")
-
-                # Detailed log like your screenshot
                 detailed_log = member_df[['Client', 'Week', 'Activity Name', 'Comments', 'Time', 'Hours']].sort_values(by=['Client', 'Week'])
                 detailed_log.to_excel(writer, sheet_name=f"{member[:15]}_Details", index=False)
 
-        with open(output_file, "rb") as f:
-            st.download_button(
-                label="📥 Download Pivot Report",
-                data=f,
-                file_name=output_file,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        output.seek(0)
+        st.download_button(
+            label="📥 Download Pivot Report",
+            data=output,
+            file_name=f"pivot_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
