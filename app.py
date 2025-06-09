@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
-st.title("📊 Automated Pivot Report Generator")
+st.title("📊 Automated Pivot Report Generator by Konan Davy")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload your Excel file with aggregate data", type=[".xlsx"])
@@ -66,5 +66,4 @@ if uploaded_file:
                 file_name=output_file,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
 
