@@ -32,11 +32,9 @@ if uploaded_file:
             # === Summary Sheet ===
             from openpyxl.utils.dataframe import dataframe_to_rows
             from openpyxl.styles import Font, PatternFill
-            from openpyxl import Workbook
 
-            wb = Workbook()
-            ws = wb.active
-            ws.title = 'Summary'
+            wb = writer.book
+            ws = wb.create_sheet(title='Summary', index=0)
 
             def write_pivot_block(title, df_block):
                 ws.append([title])
@@ -76,8 +74,6 @@ if uploaded_file:
                         if cell.value is not None:
                             cell.font = bold_font
                             cell.fill = fill
-
-            wb.save(output_file)
 
             # === Detailed Logs and Pivots ===
             for member in team_members:
