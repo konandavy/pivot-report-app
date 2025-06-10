@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 from datetime import datetime
-import openai
+from openai import OpenAI
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
 st.title("📊 Automated Pivot Report Generator by Konan Davy")
@@ -56,14 +56,15 @@ if uploaded_file:
     if st.checkbox("💬 Ask questions about the data"):
         question = st.text_input("Ask me anything about this dataset:")
         if question:
+            import openai
             # Convert df to CSV string for context
             context_csv = df.head(100).to_csv(index=False)
-            openai.api_key = st.secrets["openai_api_key"] if "openai_api_key" in st.secrets else ""
+            client = OpenAI(api_key=st.secrets["openai_api_key"])
 
             prompt = f"You are a data expert. Here's a dataset:\n{context_csv}\n\nQuestion: {question}\nAnswer:"
 
             try:
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a helpful data expert."},
