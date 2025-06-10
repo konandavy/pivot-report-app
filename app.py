@@ -3,7 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime
 from openai import OpenAI
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
 st.title("📊 Automated Pivot Report Generator by Konan Davy")
@@ -44,21 +44,17 @@ if uploaded_file:
 
     # === Visualizations ===
     if st.checkbox("📈 Show Visual Charts"):
-        # Pie Chart - Analyst hours by client
-        st.subheader("📊 Pie Chart: Analyst Hours by Client")
-        pie_client = df.groupby('Client')['Hours'].sum()
-        fig1, ax1 = plt.subplots()
-        ax1.pie(pie_client, labels=pie_client.index, autopct='%1.1f%%', startangle=90)
-        ax1.axis('equal')
-        st.pyplot(fig1)
+        st.subheader("Distribution of Hours by Client")
+        client_hours = df.groupby("Client")["Hours"].sum().reset_index()
+        fig_client = px.pie(client_hours, names='Client', values='Hours',
+                            title='Distribution of Hours by Client', hole=0.3)
+        st.plotly_chart(fig_client, use_container_width=True)
 
-        # Pie Chart - Analyst hours by activity
-        st.subheader("📊 Pie Chart: Analyst Hours by Activity")
-        pie_activity = df.groupby('Activity Name')['Hours'].sum()
-        fig2, ax2 = plt.subplots()
-        ax2.pie(pie_activity, labels=pie_activity.index, autopct='%1.1f%%', startangle=90)
-        ax2.axis('equal')
-        st.pyplot(fig2)
+        st.subheader("Distribution of Hours by Activity")
+        activity_hours = df.groupby("Activity Name")["Hours"].sum().reset_index()
+        fig_activity = px.pie(activity_hours, names='Activity Name', values='Hours',
+                              title='Distribution of Hours by Activity', hole=0.3)
+        st.plotly_chart(fig_activity, use_container_width=True)
 
     # === Natural Language Q&A ===
     if st.checkbox("💬 Ask questions about the data"):
@@ -67,6 +63,7 @@ if uploaded_file:
             import openai
             context_csv = df.head(100).to_csv(index=False)
             client = OpenAI(api_key=st.secrets["openai_api_key"])
+
             prompt = f"You are a data expert. Here's a dataset:\n{context_csv}\n\nQuestion: {question}\nAnswer:"
 
             try:
@@ -99,25 +96,21 @@ if uploaded_file:
                     ws.append(list(r))
                 ws.append([None])
 
-            # Pivot 1: Client Totals
             pivot1 = df.groupby('Client')['Hours'].sum().reset_index()
             pivot1['Hours'] = pivot1['Hours'].round(2)
             pivot1.columns = ['Row Labels', 'Sum of Hours']
             write_pivot_block('Client Totals', pivot1)
 
-            # Pivot 2: Activity Totals
             pivot2 = df.groupby('Activity Name')['Hours'].sum().reset_index()
             pivot2['Hours'] = pivot2['Hours'].round(2)
             pivot2.columns = ['Row Labels', 'Sum of Hours']
             write_pivot_block('Activity Totals', pivot2)
 
-            # Pivot 3: Week Totals
             pivot3 = df.groupby('Week')['Hours'].sum().reset_index()
             pivot3['Hours'] = pivot3['Hours'].round(2)
             pivot3.columns = ['Row Labels', 'Sum of Hours']
             write_pivot_block('Week Totals', pivot3)
 
-            # Grand Total
             grand_total = round(df['Hours'].sum(), 2)
             ws.append(['Grand Total', grand_total])
 
@@ -130,7 +123,6 @@ if uploaded_file:
                             cell.font = bold_font
                             cell.fill = fill
 
-            # === Detailed Logs ===
             for member in team_members:
                 member_df = df[df['Source.Name'] == member]
                 detailed_log = member_df[['Client', 'Week', 'Activity Name', 'Comments', 'Time', 'Hours']].sort_values(by=['Client', 'Week'])
@@ -143,4 +135,5 @@ if uploaded_file:
             file_name=f"pivot_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
