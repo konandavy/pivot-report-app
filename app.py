@@ -44,17 +44,11 @@ if uploaded_file:
 
     # === Visualizations ===
     if st.checkbox("📈 Show Visual Charts"):
-        st.subheader("Distribution of Hours by Client")
-        client_hours = df.groupby("Client")["Hours"].sum().reset_index()
-        fig_client = px.pie(client_hours, names='Client', values='Hours',
-                            title='Distribution of Hours by Client', hole=0.3)
-        st.plotly_chart(fig_client, use_container_width=True)
-
-        st.subheader("Distribution of Hours by Activity")
-        activity_hours = df.groupby("Activity Name")["Hours"].sum().reset_index()
-        fig_activity = px.pie(activity_hours, names='Activity Name', values='Hours',
-                              title='Distribution of Hours by Activity', hole=0.3)
-        st.plotly_chart(fig_activity, use_container_width=True)
+        st.subheader("Treemap of Hours by Client and Activity")
+        sunburst_data = df.groupby(['Client', 'Activity Name'])['Hours'].sum().reset_index()
+        fig_treemap = px.treemap(sunburst_data, path=['Client', 'Activity Name'], values='Hours',
+                                 title='Treemap of Hours by Client and Activity')
+        st.plotly_chart(fig_treemap, use_container_width=True)
 
     # === Natural Language Q&A ===
     if st.checkbox("💬 Ask questions about the data"):
