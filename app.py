@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 from datetime import datetime
+import openai
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
 st.title("📊 Automated Pivot Report Generator by Konan Davy")
@@ -24,6 +25,56 @@ if uploaded_file:
     # Preview data
     if st.checkbox("Preview raw data"):
         st.dataframe(df.head(20))
+
+    # === AI-generated Insights ===
+    if st.checkbox("🤖 Show AI-generated insights"):
+        top_client = df.groupby('Client')['Hours'].sum().idxmax()
+        top_activity = df.groupby('Activity Name')['Hours'].sum().idxmax()
+        top_member = df.groupby('Source.Name')['Hours'].sum().idxmax()
+        max_week = df.groupby('Week')['Hours'].sum().idxmax()
+        zero_hours = df[df['Hours'] == 0]
+
+        st.markdown("### 🔍 Key Insights")
+        st.markdown(f"- 🥇 **Top client by hours:** {top_client}")
+        st.markdown(f"- 🛠️ **Top activity by hours:** {top_activity}")
+        st.markdown(f"- 👤 **Top team member by hours:** {top_member}")
+        st.markdown(f"- 📅 **Week with most logged hours:** {max_week}")
+        st.markdown(f"- ⚠️ **Entries with 0 hours logged:** {len(zero_hours)}")
+
+    # === Visualizations ===
+    if st.checkbox("📈 Show Visual Charts"):
+        st.subheader("Total Hours per Client")
+        st.bar_chart(df.groupby('Client')['Hours'].sum().sort_values(ascending=False))
+
+        st.subheader("Hours by Activity")
+        st.bar_chart(df.groupby('Activity Name')['Hours'].sum().sort_values(ascending=False))
+
+        st.subheader("Hours per Week")
+        st.line_chart(df.groupby('Week')['Hours'].sum())
+
+    # === Natural Language Q&A ===
+    if st.checkbox("💬 Ask questions about the data"):
+        question = st.text_input("Ask me anything about this dataset:")
+        if question:
+            # Convert df to CSV string for context
+            context_csv = df.head(100).to_csv(index=False)
+            openai.api_key = st.secrets["openai_api_key"] if "openai_api_key" in st.secrets else ""
+
+            prompt = f"You are a data expert. Here's a dataset:\n{context_csv}\n\nQuestion: {question}\nAnswer:"
+
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful data expert."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                answer = response.choices[0].message.content
+                st.markdown("### 🤖 Answer")
+                st.write(answer)
+            except Exception as e:
+                st.error(f"Error generating answer: {e}")
 
     if st.button("Generate Pivot Report"):
         output = io.BytesIO()
