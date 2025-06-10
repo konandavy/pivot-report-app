@@ -3,6 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime
 from openai import OpenAI
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Pivot Report Generator", layout="wide")
 st.title("📊 Automated Pivot Report Generator by Konan Davy")
@@ -43,24 +44,29 @@ if uploaded_file:
 
     # === Visualizations ===
     if st.checkbox("📈 Show Visual Charts"):
-        st.subheader("Total Hours per Client")
-        st.bar_chart(df.groupby('Client')['Hours'].sum().sort_values(ascending=False))
+        # Pie Chart - Analyst hours by client
+        st.subheader("📊 Pie Chart: Analyst Hours by Client")
+        pie_client = df.groupby('Client')['Hours'].sum()
+        fig1, ax1 = plt.subplots()
+        ax1.pie(pie_client, labels=pie_client.index, autopct='%1.1f%%', startangle=90)
+        ax1.axis('equal')
+        st.pyplot(fig1)
 
-        st.subheader("Hours by Activity")
-        st.bar_chart(df.groupby('Activity Name')['Hours'].sum().sort_values(ascending=False))
-
-        st.subheader("Hours per Week")
-        st.line_chart(df.groupby('Week')['Hours'].sum())
+        # Pie Chart - Analyst hours by activity
+        st.subheader("📊 Pie Chart: Analyst Hours by Activity")
+        pie_activity = df.groupby('Activity Name')['Hours'].sum()
+        fig2, ax2 = plt.subplots()
+        ax2.pie(pie_activity, labels=pie_activity.index, autopct='%1.1f%%', startangle=90)
+        ax2.axis('equal')
+        st.pyplot(fig2)
 
     # === Natural Language Q&A ===
     if st.checkbox("💬 Ask questions about the data"):
         question = st.text_input("Ask me anything about this dataset:")
         if question:
             import openai
-            # Convert df to CSV string for context
             context_csv = df.head(100).to_csv(index=False)
             client = OpenAI(api_key=st.secrets["openai_api_key"])
-
             prompt = f"You are a data expert. Here's a dataset:\n{context_csv}\n\nQuestion: {question}\nAnswer:"
 
             try:
@@ -80,7 +86,6 @@ if uploaded_file:
     if st.button("Generate Pivot Report"):
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # === Summary Sheet ===
             from openpyxl.utils.dataframe import dataframe_to_rows
             from openpyxl.styles import Font, PatternFill
 
@@ -116,7 +121,6 @@ if uploaded_file:
             grand_total = round(df['Hours'].sum(), 2)
             ws.append(['Grand Total', grand_total])
 
-            # Style Headers
             bold_font = Font(bold=True)
             fill = PatternFill(start_color='D9E1F2', end_color='D9E1F2', fill_type='solid')
             for row in ws.iter_rows():
